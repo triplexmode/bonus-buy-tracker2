@@ -461,16 +461,11 @@
     const list = document.getElementById('bonus-list');
     const wrap = document.querySelector('.bonus-list-wrap');
     if (!list || !wrap) return;
-    const maxScroll = wrap.scrollHeight - wrap.clientHeight;
-    if (maxScroll <= 0) { setTimeout(updateMarquee, 500); return; }
-    // duration: 1px per ~55ms = slow and smooth
-    const duration = maxScroll * 55;
-    list.style.animation = 'none';
-    list.style.transform = 'translateY(0)';
-    // force reflow
-    list.offsetHeight;
-    list.style.transition = '';
-    list.style.animation = \`marquee-scroll \${duration}ms linear infinite\`;
+    if (list.scrollHeight <= wrap.clientHeight) {
+      setTimeout(updateMarquee, 500);
+      return;
+    }
+    list.classList.add('scrolling');
   }
 
   function scrollToActive() {
