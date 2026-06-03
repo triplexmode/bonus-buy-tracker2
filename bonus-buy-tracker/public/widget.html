@@ -451,6 +451,7 @@
 
     const SPEED = 0.5;
     const PAUSE_MS = 1500;
+    let pos = 0; // track position independently of DOM
 
     function step() {
       const wrap = document.querySelector('.bonus-list-wrap');
@@ -459,14 +460,13 @@
       if (!marqueePaused) {
         const maxScroll = wrap.scrollHeight - wrap.clientHeight;
         if (maxScroll > 0) {
-          wrap.scrollTop += SPEED;
-          if (wrap.scrollTop >= maxScroll) {
+          pos += SPEED;
+          if (pos >= maxScroll) {
+            pos = 0;
             marqueePaused = true;
-            setTimeout(() => {
-              wrap.scrollTop = 0;
-              marqueePaused = false;
-            }, PAUSE_MS);
+            setTimeout(() => { marqueePaused = false; }, PAUSE_MS);
           }
+          wrap.scrollTop = pos;
         }
       }
       requestAnimationFrame(step);
@@ -530,9 +530,6 @@
       return;
     }
 
-    const wrap = document.querySelector('.bonus-list-wrap');
-    const savedScroll = wrap ? wrap.scrollTop : 0;
-
     list.innerHTML = bonuses.map(b => {
       const multVal = b.result !== null ? b.result / b.cost : null;
       const isWin   = b.result !== null && b.result >= b.cost;
@@ -574,8 +571,6 @@
           </div>
         </div>`;
     }).join('');
-
-    if (wrap) wrap.scrollTop = savedScroll;
 
     // Auto-scroll to active item + start marquee
     const activeBonus = bonuses.find(b => b.status === 'active');
