@@ -530,6 +530,9 @@
       return;
     }
 
+    const wrap = document.querySelector('.bonus-list-wrap');
+    const savedScroll = wrap ? wrap.scrollTop : 0;
+
     list.innerHTML = bonuses.map(b => {
       const multVal = b.result !== null ? b.result / b.cost : null;
       const isWin   = b.result !== null && b.result >= b.cost;
@@ -572,6 +575,7 @@
         </div>`;
     }).join('');
 
+    if (wrap) wrap.scrollTop = savedScroll;
 
     // Auto-scroll to active item + start marquee
     const activeBonus = bonuses.find(b => b.status === 'active');
