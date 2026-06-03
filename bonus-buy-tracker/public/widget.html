@@ -441,13 +441,45 @@
 
   let lastActiveId = null;
 
+  // ── Marquee scroll ────────────────────────────────────────────────────────
+  let marqueeRaf = null;
+  let marqueePaused = false;
+
+  function startMarquee() {
+    const wrap = document.querySelector('.bonus-list-wrap');
+    if (!wrap) return;
+    if (marqueeRaf) cancelAnimationFrame(marqueeRaf);
+
+    const SPEED = 0.4;      // px per frame
+    const PAUSE_MS = 1200;  // pause at top before restarting
+
+    function step() {
+      if (!marqueePaused) {
+        const maxScroll = wrap.scrollHeight - wrap.clientHeight;
+        if (maxScroll <= 0) { marqueeRaf = requestAnimationFrame(step); return; }
+
+        wrap.scrollTop += SPEED;
+
+        if (wrap.scrollTop >= maxScroll) {
+          // reached bottom — pause then jump to top
+          marqueePaused = true;
+          setTimeout(() => {
+            wrap.scrollTop = 0;
+            marqueePaused = false;
+          }, PAUSE_MS);
+        }
+      }
+      marqueeRaf = requestAnimationFrame(step);
+    }
+    marqueeRaf = requestAnimationFrame(step);
+  }
+
   function scrollToActive() {
     const wrap = document.querySelector('.bonus-list-wrap');
     const list = document.getElementById('bonus-list');
     if (!wrap || !list) return;
     const activeItem = list.querySelector('.bonus-item.active');
     if (!activeItem) return;
-    // Center the active item in the visible area
     const itemTop    = activeItem.offsetTop;
     const itemHeight = activeItem.offsetHeight;
     const wrapHeight = wrap.clientHeight;
@@ -541,12 +573,14 @@
     }).join('');
 
 
-    // Auto-scroll to active item
+    // Auto-scroll to active item + start marquee
     const activeBonus = bonuses.find(b => b.status === 'active');
     const activeId = activeBonus ? activeBonus.id : null;
     requestAnimationFrame(() => {
       scrollToActive();
       lastActiveId = activeId;
+      // restart marquee after active-snap settles
+      setTimeout(startMarquee, 800);
     });
 
     // Footer
