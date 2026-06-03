@@ -566,17 +566,23 @@
         </div>`;
     }).join('');
 
-    // Restore marquee class after innerHTML re-render
-    if (marqueeStarted) {
-      const list2 = document.getElementById('bonus-list');
-      if (list2) list2.classList.add('scrolling');
-    }
-
     // Auto-scroll to active item + start marquee
     const activeBonus = bonuses.find(b => b.status === 'active');
     const activeId = activeBonus ? activeBonus.id : null;
     requestAnimationFrame(() => {
-      startMarquee();
+      const wrap2 = document.querySelector('.bonus-list-wrap');
+      const list2 = document.getElementById('bonus-list');
+      if (wrap2 && list2) {
+        const canScroll = list2.scrollHeight > wrap2.clientHeight;
+        if (canScroll) {
+          list2.classList.add('scrolling');
+          startMarquee();
+        } else {
+          // не хватает контента — убираем анимацию и сбрасываем флаг
+          list2.classList.remove('scrolling');
+          marqueeStarted = false;
+        }
+      }
       lastActiveId = activeId;
     });
 
