@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bonus Buy Widget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --gold:    #FFD666;
+    --gold-d:  #E5A800;
+    --green:   #4ADE80;
+    --red:     #F87171;
+    --blue:    #60A5FA;
+    --bg:      rgba(8, 8, 18, 0.92);
+    --bg2:     rgba(16, 16, 32, 0.88);
+    --bg3:     rgba(24, 24, 48, 0.9);
+    --border:  rgba(255, 214, 102, 0.18);
+    --text:    #E8E8F0;
+    --muted:   rgba(200, 200, 220, 0.5);
+    --w: 400px;
+  }
+
+  body {
+    background: transparent;
+    font-family: 'Rajdhani', sans-serif;
+    width: var(--w);
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  #widget {
+    width: var(--w);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,214,102,0.08);
+  }
+
+  /* ── TOP BAR ─────────────────────────────── */
+  .top-bar {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(30,20,0,0.9) 0%, rgba(15,10,30,0.95) 100%);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .top-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255,214,102,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .balance-block {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .balance-icon {
+    font-size: 18px;
+    filter: drop-shadow(0 0 6px rgba(255,200,0,0.6));
+  }
+
+  .balance-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 12px rgba(255,214,102,0.4);
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 4px 9px;
+    font-size: 11px;
+  }
+
+  .stat-pill .pill-label {
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.8px;
+  }
+
+  .stat-pill .pill-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .stat-pill.bonus-x  .pill-val { color: var(--blue); }
+  .stat-pill.total-x  .pill-val { color: var(--gold); }
+  .stat-pill.pos       .pill-val { color: var(--green) !important; }
+  .stat-pill.neg       .pill-val { color: var(--red)   !important; }
+
+  .stars-block {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--gold);
+    font-size: 12px;
+  }
+
+  /* ── BONUS LIST ──────────────────────────── */
+  .bonus-list-wrap {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 214, 102, 0.25) transparent;
+  }
+
+  .bonus-list-wrap::-webkit-scrollbar { width: 4px; }
+  .bonus-list-wrap::-webkit-scrollbar-track { background: transparent; }
+  .bonus-list-wrap::-webkit-scrollbar-thumb { background: rgba(255, 214, 102, 0.25); border-radius: 4px; }
+  .bonus-list-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255, 214, 102, 0.45); }
+
+  .bonus-list {
+    padding: 8px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .bonus-item {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px;
+    border-left: 3px solid transparent;
+    transition: background 0.25s, border-color 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bonus-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 14px; right: 14px;
+    height: 1px;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .bonus-item:last-child::after { display: none; }
+
+  /* ACTIVE — highlighted */
+  .bonus-item.active {
+    background: linear-gradient(90deg, rgba(255,214,102,0.08) 0%, transparent 80%);
+    border-left-color: var(--gold);
+    animation: pulse-row 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-row {
+    0%, 100% { background: linear-gradient(90deg, rgba(255,214,102,0.08) 0%, transparent 80%); }
+    50%       { background: linear-gradient(90deg, rgba(255,214,102,0.16) 0%, transparent 80%); }
+  }
+
+  /* COMPLETED */
+  .bonus-item.completed { opacity: 0.8; }
+
+  /* PENDING */
+  .bonus-item.pending { opacity: 0.55; }
+
+  /* Game image */
+  .game-img {
+    width: 48px;
+    height: 34px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--bg3);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .game-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .game-img .placeholder {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* Game info */
+  .game-info { min-width: 0; }
+
+  .game-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.3px;
+  }
+
+  .game-cost-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 1px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .cost-val { color: rgba(255,255,255,0.7); }
+
+  .arrow { color: var(--muted); font-size: 10px; }
+
+  .result-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .result-val.win  { color: var(--green); }
+  .result-val.loss { color: var(--red); }
+
+  /* Right badge */
+  .badge-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .mult-badge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 5px;
+    letter-spacing: 0.5px;
+    min-width: 44px;
+    text-align: center;
+  }
+
+  .mult-badge.win  { background: rgba(74,222,128,0.15); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+  .mult-badge.loss { background: rgba(248,113,113,0.15); color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+  .mult-badge.pending { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid rgba(255,255,255,0.1); }
+
+  .active-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+    animation: blink 1.2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  /* ── FOOTER ──────────────────────────────── */
+  .footer {
+    padding: 8px 14px;
+    background: rgba(0,0,0,0.3);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .footer-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .footer-stat-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .footer-stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .footer-stat-val.pos { color: var(--green); }
+  .footer-stat-val.neg { color: var(--red); }
+  .footer-stat-val.gold { color: var(--gold); }
+
+  /* ── EMPTY STATE ─────────────────────────── */
+  .empty {
+    padding: 24px 14px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── CONNECTING ──────────────────────────── */
+  #connecting {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 1px;
+    z-index: 10;
+    border-radius: 16px;
+  }
+
+  #connecting.hidden { display: none; }
+
+  .dot-anim::after {
+    content: '...';
+    animation: dots 1.4s steps(4) infinite;
+  }
+  @keyframes dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+  }
+</style>
+</head>
+<body>
+<div style="position:relative;">
+  <div id="connecting"><span class="dot-anim">Подключение</span></div>
+  <div id="widget">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="balance-block">
+        <span class="balance-icon">💰</span>
+        <span class="balance-val" id="balance-val">—</span>
+      </div>
+      <div class="stars-block" id="stars-block">⭐ <span id="stars-count">0</span></div>
+      <div class="stat-pill bonus-x" id="bonus-x-pill">
+        <span class="pill-label">Бонус</span>
+        <span class="pill-val" id="bonus-x-val">—</span>
+      </div>
+      <div class="stat-pill total-x" id="total-x-pill">
+        <span class="pill-label">Итог</span>
+        <span class="pill-val" id="total-x-val">—</span>
+      </div>
+    </div>
+
+    <!-- Bonus list -->
+    <div class="bonus-list-wrap"><div class="bonus-list" id="bonus-list">
+      <div class="empty">Бонусы не добавлены</div>
+    </div></div>
+
+    <!-- Footer summary -->
+    <div class="footer" id="footer" style="display:none;">
+      <div class="footer-stat">
+        <span class="footer-stat-label">Потрачено</span>
+        <span class="footer-stat-val gold" id="total-spent">0 $</span>
+      </div>
+      <div class="footer-stat">
+        <span class="footer-stat-label">Выиграно</span>
+        <span class="footer-stat-val" id="total-won">0 $</span>
+      </div>
+      <div class="footer-stat">
+        <span class="footer-stat-label">Профит</span>
+        <span class="footer-stat-val" id="net-profit">0 $</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const fmt = n => Number(n).toLocaleString('ru') + ' $';
+  const fmtX = n => n.toFixed(2) + 'x';
+
+  // Game emoji fallbacks
+  const GAME_ICONS = {
+    default: '🎰',
+    'sugar rush': '🍭',
+    'sweet bonanza': '🍬',
+    'dog house': '🐾',
+    'zeus': '⚡',
+    'gates of olympus': '🏛️',
+    'steamrunners': '🚂',
+    'fire': '🔥',
+    'book': '📖',
+    'wolf': '🐺',
+  };
+
+  function getEmoji(name) {
+    const n = (name || '').toLowerCase();
+    for (const [k, v] of Object.entries(GAME_ICONS)) {
+      if (n.includes(k)) return v;
+    }
+    return GAME_ICONS.default;
+  }
+
+  function calcStats(state) {
+    const bonuses = state.bonuses || [];
+    const completed = bonuses.filter(b => b.status === 'completed' && b.result !== null);
+    const totalCost   = completed.reduce((s, b) => s + b.cost, 0);
+    const totalResult = completed.reduce((s, b) => s + b.result, 0);
+    const net         = totalResult - totalCost;
+    const bonusX      = totalCost > 0 ? totalResult / totalCost : null;
+    const totalX      = state.startBalance > 0 ? state.balance / state.startBalance : null;
+    const wins        = completed.filter(b => b.result >= b.cost).length;
+    return { totalCost, totalResult, net, bonusX, totalX, wins, completed: completed.length };
+  }
+
+  let lastActiveId = null;
+
+  function scrollToActive() {
+    const wrap = document.querySelector('.bonus-list-wrap');
+    const list = document.getElementById('bonus-list');
+    if (!wrap || !list) return;
+    const activeItem = list.querySelector('.bonus-item.active');
+    if (!activeItem) return;
+    // Center the active item in the visible area
+    const itemTop    = activeItem.offsetTop;
+    const itemHeight = activeItem.offsetHeight;
+    const wrapHeight = wrap.clientHeight;
+    const target     = itemTop - (wrapHeight / 2) + (itemHeight / 2);
+    wrap.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+  }
+
+  function render(state) {
+    document.getElementById('connecting').classList.add('hidden');
+    const stats = calcStats(state);
+
+    // Balance
+    document.getElementById('balance-val').textContent = state.balance ? fmt(state.balance) : '—';
+
+    // Stars (wins)
+    document.getElementById('stars-count').textContent = stats.wins;
+
+    // Bonus X pill
+    const bxPill = document.getElementById('bonus-x-pill');
+    const bxVal  = document.getElementById('bonus-x-val');
+    if (stats.bonusX !== null) {
+      bxVal.textContent = fmtX(stats.bonusX);
+      bxPill.classList.toggle('pos', stats.bonusX >= 1);
+      bxPill.classList.toggle('neg', stats.bonusX < 1);
+    } else {
+      bxVal.textContent = '—';
+      bxPill.classList.remove('pos', 'neg');
+    }
+
+    // Total X pill
+    const txPill = document.getElementById('total-x-pill');
+    const txVal  = document.getElementById('total-x-val');
+    if (stats.totalX !== null) {
+      txVal.textContent = fmtX(stats.totalX);
+      txPill.classList.toggle('pos', stats.totalX >= 1);
+      txPill.classList.toggle('neg', stats.totalX < 1);
+    } else {
+      txVal.textContent = '—';
+      txPill.classList.remove('pos', 'neg');
+    }
+
+    // Bonus list
+    const list = document.getElementById('bonus-list');
+    const bonuses = state.bonuses || [];
+    if (bonuses.length === 0) {
+      list.innerHTML = '<div class="empty">Бонусы не добавлены</div>';
+      document.getElementById('footer').style.display = 'none';
+      return;
+    }
+
+    list.innerHTML = bonuses.map(b => {
+      const multVal = b.result !== null ? b.result / b.cost : null;
+      const isWin   = b.result !== null && b.result >= b.cost;
+      const isLoss  = b.result !== null && b.result < b.cost;
+
+      const multBadge = multVal !== null
+        ? `<span class="mult-badge ${isWin ? 'win' : 'loss'}">${fmtX(multVal)}</span>`
+        : `<span class="mult-badge pending">?</span>`;
+
+      const activeBadge = b.status === 'active'
+        ? `<span class="active-badge">▶ ОТКРЫТИЕ</span>`
+        : '';
+
+      const imgContent = b.image
+        ? `<img src="${b.image}" alt="${b.game}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : '';
+      const emoji = getEmoji(b.game);
+
+      const resultHtml = b.result !== null
+        ? `<span class="arrow">→</span><span class="result-val ${isWin ? 'win' : 'loss'}">${fmt(b.result)}</span>`
+        : '';
+
+      return `
+        <div class="bonus-item ${b.status}" data-id="${b.id}">
+          <div class="game-img">
+            ${imgContent}
+            <span class="placeholder" style="${b.image ? 'display:none' : ''}">${emoji}</span>
+          </div>
+          <div class="game-info">
+            <div class="game-name">${b.game}</div>
+            <div class="game-cost-row">
+              <span class="cost-val">${fmt(b.cost)}</span>
+              ${resultHtml}
+            </div>
+          </div>
+          <div class="badge-col">
+            ${multBadge}
+            ${activeBadge}
+          </div>
+        </div>`;
+    }).join('');
+
+
+    // Auto-scroll to active item
+    const activeBonus = bonuses.find(b => b.status === 'active');
+    const activeId = activeBonus ? activeBonus.id : null;
+    requestAnimationFrame(() => {
+      scrollToActive();
+      lastActiveId = activeId;
+    });
+
+    // Footer
+    const footer = document.getElementById('footer');
+    footer.style.display = 'flex';
+    document.getElementById('total-spent').textContent = fmt(stats.totalCost);
+    const wonEl = document.getElementById('total-won');
+    wonEl.textContent = fmt(stats.totalResult);
+    wonEl.className = 'footer-stat-val ' + (stats.totalResult >= stats.totalCost ? 'pos' : 'neg');
+    const netEl = document.getElementById('net-profit');
+    netEl.textContent = (stats.net >= 0 ? '+' : '') + fmt(stats.net);
+    netEl.className = 'footer-stat-val ' + (stats.net >= 0 ? 'pos' : 'neg');
+  }
+
+  // ── SSE ─────────────────────────────────────────────────────────────────────
+  function connect() {
+    const es = new EventSource('/events');
+    es.onmessage = e => {
+      try { render(JSON.parse(e.data)); } catch {}
+    };
+    es.onerror = () => {
+      es.close();
+      setTimeout(connect, 3000); // reconnect
+    };
+  }
+  connect();
+</script>
+</body>
+</html>

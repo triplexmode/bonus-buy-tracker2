@@ -1,0 +1,78 @@
+{
+  "balance": 0,
+  "startBalance": 0,
+  "bonuses": [
+    {
+      "id": 1780468022044,
+      "game": "123",
+      "cost": 123,
+      "result": 15,
+      "image": null,
+      "status": "completed",
+      "createdAt": "2026-06-03T06:27:02.044Z"
+    },
+    {
+      "id": 1780468026249,
+      "game": "123",
+      "cost": 123,
+      "result": 14,
+      "image": null,
+      "status": "completed",
+      "createdAt": "2026-06-03T06:27:06.249Z"
+    },
+    {
+      "id": 1780468027817,
+      "game": "123",
+      "cost": 123,
+      "result": 14,
+      "image": null,
+      "status": "completed",
+      "createdAt": "2026-06-03T06:27:07.817Z"
+    },
+    {
+      "id": 1780468033068,
+      "game": "123",
+      "cost": 123,
+      "result": 4,
+      "image": null,
+      "status": "completed",
+      "createdAt": "2026-06-03T06:27:13.068Z"
+    },
+    {
+      "id": 1780468037104,
+      "game": "123",
+      "cost": 123,
+      "result": null,
+      "image": null,
+      "status": "active",
+      "createdAt": "2026-06-03T06:27:17.104Z"
+    },
+    {
+      "id": 1780468041149,
+      "game": "123",
+      "cost": 123,
+      "result": null,
+      "image": null,
+      "status": "pending",
+      "createdAt": "2026-06-03T06:27:21.149Z"
+    },
+    {
+      "id": 1780468045394,
+      "game": "123",
+      "cost": 123,
+      "result": null,
+      "image": null,
+      "status": "pending",
+      "createdAt": "2026-06-03T06:27:25.394Z"
+    },
+    {
+      "id": 1780468049993,
+      "game": "123",
+      "cost": 123,
+      "result": null,
+      "image": null,
+      "status": "pending",
+      "createdAt": "2026-06-03T06:27:29.993Z"
+    }
+  ]
+}

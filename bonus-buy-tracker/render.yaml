@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: bonus-buy-tracker
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
