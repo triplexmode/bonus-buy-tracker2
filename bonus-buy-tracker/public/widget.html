@@ -124,15 +124,22 @@
   /* ── BONUS LIST ──────────────────────────── */
   .bonus-list-wrap {
     max-height: 185px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 214, 102, 0.25) transparent;
+    overflow: hidden;
   }
 
-  .bonus-list-wrap::-webkit-scrollbar { width: 4px; }
-  .bonus-list-wrap::-webkit-scrollbar-track { background: transparent; }
-  .bonus-list-wrap::-webkit-scrollbar-thumb { background: rgba(255, 214, 102, 0.25); border-radius: 4px; }
-  .bonus-list-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255, 214, 102, 0.45); }
+  @keyframes marquee-scroll {
+    0%   { transform: translateY(0); }
+    90%  { transform: translateY(calc(-100% + 185px)); }
+    95%  { transform: translateY(calc(-100% + 185px)); }
+    100% { transform: translateY(0); }
+  }
+
+  .bonus-list.scrolling {
+    animation: marquee-scroll 12s linear infinite;
+    will-change: transform;
+  }
+
+
 
   .bonus-list {
     padding: 8px 0 4px;
@@ -443,40 +450,27 @@
 
   // ── Marquee scroll ────────────────────────────────────────────────────────
   let marqueeStarted = false;
-  let marqueePaused = false;
 
   function startMarquee() {
     if (marqueeStarted) return;
     marqueeStarted = true;
+    updateMarquee();
+  }
 
-    const SPEED_PX_PER_SEC = 18; // pixels per second
-    const PAUSE_MS = 1500;
-    let pos = 0;
-    let lastTime = null;
-
-    function step(timestamp) {
-      const wrap = document.querySelector('.bonus-list-wrap');
-      if (!wrap) { requestAnimationFrame(step); return; }
-
-      if (lastTime === null) lastTime = timestamp;
-      const delta = (timestamp - lastTime) / 1000; // seconds
-      lastTime = timestamp;
-
-      if (!marqueePaused) {
-        const maxScroll = wrap.scrollHeight - wrap.clientHeight;
-        if (maxScroll > 0) {
-          pos += SPEED_PX_PER_SEC * delta;
-          if (pos >= maxScroll) {
-            pos = 0;
-            marqueePaused = true;
-            setTimeout(() => { marqueePaused = false; }, PAUSE_MS);
-          }
-          wrap.scrollTop = pos;
-        }
-      }
-      requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
+  function updateMarquee() {
+    const list = document.getElementById('bonus-list');
+    const wrap = document.querySelector('.bonus-list-wrap');
+    if (!list || !wrap) return;
+    const maxScroll = wrap.scrollHeight - wrap.clientHeight;
+    if (maxScroll <= 0) { setTimeout(updateMarquee, 500); return; }
+    // duration: 1px per ~55ms = slow and smooth
+    const duration = maxScroll * 55;
+    list.style.animation = 'none';
+    list.style.transform = 'translateY(0)';
+    // force reflow
+    list.offsetHeight;
+    list.style.transition = '';
+    list.style.animation = \`marquee-scroll \${duration}ms linear infinite\`;
   }
 
   function scrollToActive() {
@@ -577,11 +571,16 @@
         </div>`;
     }).join('');
 
+    // Restore marquee class after innerHTML re-render
+    if (marqueeStarted) {
+      const list2 = document.getElementById('bonus-list');
+      if (list2) list2.classList.add('scrolling');
+    }
+
     // Auto-scroll to active item + start marquee
     const activeBonus = bonuses.find(b => b.status === 'active');
     const activeId = activeBonus ? activeBonus.id : null;
     requestAnimationFrame(() => {
-      // only start marquee once, on first render
       startMarquee();
       lastActiveId = activeId;
     });
