@@ -442,36 +442,36 @@
   let lastActiveId = null;
 
   // ── Marquee scroll ────────────────────────────────────────────────────────
-  let marqueeRaf = null;
+  let marqueeStarted = false;
   let marqueePaused = false;
 
   function startMarquee() {
-    const wrap = document.querySelector('.bonus-list-wrap');
-    if (!wrap) return;
-    if (marqueeRaf) cancelAnimationFrame(marqueeRaf);
+    if (marqueeStarted) return;
+    marqueeStarted = true;
 
-    const SPEED = 0.4;      // px per frame
-    const PAUSE_MS = 1200;  // pause at top before restarting
+    const SPEED = 0.5;
+    const PAUSE_MS = 1500;
 
     function step() {
+      const wrap = document.querySelector('.bonus-list-wrap');
+      if (!wrap) { requestAnimationFrame(step); return; }
+
       if (!marqueePaused) {
         const maxScroll = wrap.scrollHeight - wrap.clientHeight;
-        if (maxScroll <= 0) { marqueeRaf = requestAnimationFrame(step); return; }
-
-        wrap.scrollTop += SPEED;
-
-        if (wrap.scrollTop >= maxScroll) {
-          // reached bottom — pause then jump to top
-          marqueePaused = true;
-          setTimeout(() => {
-            wrap.scrollTop = 0;
-            marqueePaused = false;
-          }, PAUSE_MS);
+        if (maxScroll > 0) {
+          wrap.scrollTop += SPEED;
+          if (wrap.scrollTop >= maxScroll) {
+            marqueePaused = true;
+            setTimeout(() => {
+              wrap.scrollTop = 0;
+              marqueePaused = false;
+            }, PAUSE_MS);
+          }
         }
       }
-      marqueeRaf = requestAnimationFrame(step);
+      requestAnimationFrame(step);
     }
-    marqueeRaf = requestAnimationFrame(step);
+    requestAnimationFrame(step);
   }
 
   function scrollToActive() {
@@ -578,7 +578,7 @@
     const activeId = activeBonus ? activeBonus.id : null;
     requestAnimationFrame(() => {
       // only start marquee once, on first render
-      if (!marqueeRaf) startMarquee();
+      startMarquee();
       lastActiveId = activeId;
     });
 
