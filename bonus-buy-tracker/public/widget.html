@@ -577,10 +577,9 @@
     const activeBonus = bonuses.find(b => b.status === 'active');
     const activeId = activeBonus ? activeBonus.id : null;
     requestAnimationFrame(() => {
-      scrollToActive();
+      // only start marquee once, on first render
+      if (!marqueeRaf) startMarquee();
       lastActiveId = activeId;
-      // restart marquee after active-snap settles
-      setTimeout(startMarquee, 800);
     });
 
     // Footer
