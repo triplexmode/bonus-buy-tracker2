@@ -123,7 +123,7 @@
 
   /* ── BONUS LIST ──────────────────────────── */
   .bonus-list-wrap {
-    max-height: 120px;
+    max-height: 160px;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 214, 102, 0.25) transparent;
@@ -449,7 +449,7 @@
     if (marqueeStarted) return;
     marqueeStarted = true;
 
-    const SPEED = 0.25;
+    const SPEED = 0.15;
     const PAUSE_MS = 1500;
     let pos = 0; // track position independently of DOM
 
