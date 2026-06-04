@@ -622,6 +622,14 @@
     toast('🗑️ Удалено');
   }
 
+  async function updateImage(id) {
+    const inp = document.querySelector(`[data-image-inp="${id}"]`);
+    if (!inp) return;
+    const url = inp.value.trim();
+    await api(`/api/bonus/${id}/image`, 'POST', { image: url || null });
+    toast('🖼️ Картинка обновлена');
+  }
+
   async function resetAll() {
     if (!confirm('Сбросить ВСЁ? Это удалит все бонуски и баланс!')) return;
     await api('/api/reset', 'POST');
@@ -723,6 +731,12 @@
           <td class="td-cost">${fmt(b.cost)}</td>
           <td>${resultCell}</td>
           <td>${multChip}</td>
+          <td>
+            <div class="result-input-row" style="min-width:180px;">
+              <input class="form-input" type="text" placeholder="URL картинки" value="${b.image || ''}" data-image-inp="${b.id}" onkeydown="if(event.key==='Enter') updateImage(${b.id})">
+              <button class="btn btn-ghost btn-sm" onclick="updateImage(${b.id})">🖼</button>
+            </div>
+          </td>
           <td>${statusChip}</td>
           <td>
             <div style="display:flex;gap:4px;justify-content:flex-end;">
@@ -741,6 +755,7 @@
             <th>Купил за</th>
             <th>Результат</th>
             <th>Множитель</th>
+            <th>Картинка</th>
             <th>Статус</th>
             <th style="text-align:right;">Действия</th>
           </tr>
