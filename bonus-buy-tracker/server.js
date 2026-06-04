@@ -39,11 +39,9 @@ app.get('/events', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.flushHeaders();
 
-  // Send current state immediately
   res.write(`data: ${JSON.stringify(loadState())}\n\n`);
   clients.add(res);
 
-  // Heartbeat every 25s to keep connection alive
   const hb = setInterval(() => res.write(': ping\n\n'), 25000);
   req.on('close', () => {
     clearInterval(hb);
@@ -58,10 +56,8 @@ function broadcast(state) {
 
 // ─── API ───────────────────────────────────────────────────────────────────────
 
-// GET full state
 app.get('/api/state', (_req, res) => res.json(loadState()));
 
-// SET balance (and start balance if not set yet)
 app.post('/api/balance', (req, res) => {
   const { balance, resetStart } = req.body;
   const state = loadState();
@@ -71,7 +67,6 @@ app.post('/api/balance', (req, res) => {
   res.json({ ok: true });
 });
 
-// ADD a bonus buy to the queue
 app.post('/api/bonus/add', (req, res) => {
   const { game, cost, image } = req.body;
   if (!game || !cost) return res.status(400).json({ error: 'game and cost required' });
@@ -85,7 +80,7 @@ app.post('/api/bonus/add', (req, res) => {
     cost: Number(cost),
     result: null,
     image: image || null,
-    status: isFirst ? 'active' : 'pending', // first added becomes active
+    status: isFirst ? 'active' : 'pending',
     createdAt: new Date().toISOString(),
   };
 
@@ -94,7 +89,6 @@ app.post('/api/bonus/add', (req, res) => {
   res.json({ ok: true, bonus });
 });
 
-// SET result for a bonus (and auto-activate next pending)
 app.post('/api/bonus/:id/result', (req, res) => {
   const { result } = req.body;
   const state = loadState();
@@ -104,7 +98,6 @@ app.post('/api/bonus/:id/result', (req, res) => {
   bonus.result = Number(result);
   bonus.status = 'completed';
 
-  // Auto-activate the next pending bonus
   const nextPending = state.bonuses.find(b => b.status === 'pending');
   if (nextPending) nextPending.status = 'active';
 
@@ -112,7 +105,6 @@ app.post('/api/bonus/:id/result', (req, res) => {
   res.json({ ok: true });
 });
 
-// Manually set a bonus as active (highlight it)
 app.post('/api/bonus/:id/activate', (req, res) => {
   const state = loadState();
   state.bonuses.forEach(b => {
@@ -125,11 +117,20 @@ app.post('/api/bonus/:id/activate', (req, res) => {
   res.json({ ok: true });
 });
 
-// DELETE a bonus
+// ─── UPDATE image ──────────────────────────────────────────────────────────────
+app.post('/api/bonus/:id/image', (req, res) => {
+  const { image } = req.body;
+  const state = loadState();
+  const bonus = state.bonuses.find(b => b.id == req.params.id);
+  if (!bonus) return res.status(404).json({ error: 'not found' });
+  bonus.image = image || null;
+  saveState(state);
+  res.json({ ok: true });
+});
+
 app.delete('/api/bonus/:id', (req, res) => {
   const state = loadState();
   state.bonuses = state.bonuses.filter(b => b.id != req.params.id);
-  // If no active left, promote first pending
   if (!state.bonuses.some(b => b.status === 'active')) {
     const first = state.bonuses.find(b => b.status === 'pending');
     if (first) first.status = 'active';
@@ -138,7 +139,6 @@ app.delete('/api/bonus/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-// RESET everything
 app.post('/api/reset', (_req, res) => {
   saveState({ ...DEFAULT_STATE });
   res.json({ ok: true });
