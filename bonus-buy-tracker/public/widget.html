@@ -125,7 +125,7 @@
 
   /* ── BONUS LIST ──────────────────────────── */
   .bonus-list-wrap {
-    max-height: 185px;
+    height: 185px;
     overflow: hidden;
   }
 
@@ -393,7 +393,7 @@
     </div></div>
 
     <!-- Footer summary -->
-    <div class="footer" id="footer" style="display:none;">
+    <div class="footer" id="footer">
       <div class="footer-stat">
         <span class="footer-stat-label">Потрачено</span>
         <span class="footer-stat-val gold" id="total-spent">0 $</span>
@@ -520,13 +520,10 @@
     // Bonus list
     const list = document.getElementById('bonus-list');
     const bonuses = state.bonuses || [];
-    if (bonuses.length === 0) {
-      list.innerHTML = '<div class="empty">Бонусы не добавлены</div>';
-      document.getElementById('footer').style.display = 'none';
-      return;
-    }
 
-    list.innerHTML = bonuses.map(b => {
+    list.innerHTML = bonuses.length === 0
+      ? '<div class="empty">Бонусы не добавлены</div>'
+      : bonuses.map(b => {
       const multVal = b.result !== null ? b.result / b.cost : null;
       const isWin   = b.result !== null && b.result >= b.cost;
       const isLoss  = b.result !== null && b.result < b.cost;
