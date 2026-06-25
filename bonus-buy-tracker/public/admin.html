@@ -276,6 +276,7 @@
     padding: 8px 12px;
     text-align: left;
     border-bottom: 1px solid var(--border2);
+    white-space: nowrap;
   }
 
   .bonus-row {
@@ -296,18 +297,15 @@
     50%      { background: linear-gradient(90deg, rgba(255,214,102,0.14) 0%, transparent 70%); }
   }
 
-  .bonus-row.completed-row { opacity: 0.7; }
-  .bonus-row.pending-row   { opacity: 0.55; }
+  .bonus-row.completed-row { opacity: 0.85; }
+  .bonus-row.pending-row   { opacity: 0.6; }
 
   .bonus-table td {
-    padding: 10px 12px;
+    padding: 8px 10px;
     vertical-align: middle;
     font-size: 13px;
     font-weight: 600;
   }
-
-  .td-game { font-size: 14px; font-weight: 700; }
-  .td-cost, .td-result { font-family: 'Orbitron', sans-serif; font-size: 12px; }
 
   .mult-chip {
     display: inline-flex;
@@ -318,6 +316,7 @@
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.5px;
+    white-space: nowrap;
   }
 
   .mult-chip.win  { background: rgba(74,222,128,0.12);  color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
@@ -334,24 +333,29 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
+    white-space: nowrap;
   }
 
   .status-chip.active    { background: rgba(255,214,102,0.15); color: var(--gold); border: 1px solid rgba(255,214,102,0.3); }
   .status-chip.completed { background: rgba(74,222,128,0.1);   color: var(--green); }
   .status-chip.pending   { background: rgba(255,255,255,0.05); color: var(--muted); }
 
-  /* Result input inline */
-  .result-input-row {
+  /* Inline editable cell: input + small save button */
+  .edit-row {
     display: flex;
     align-items: center;
     gap: 6px;
   }
 
-  .result-input-row .form-input {
-    width: 120px;
+  .edit-row .form-input {
     padding: 5px 8px;
     font-size: 12px;
   }
+
+  .edit-row .edit-game  { width: 150px; }
+  .edit-row .edit-cost  { width: 100px; }
+  .edit-row .edit-result{ width: 110px; }
+  .edit-row .edit-image { width: 150px; }
 
   /* ── TOAST ─────────────────────────────────────────── */
   #toast {
@@ -537,9 +541,9 @@
 
     <!-- Bonus list -->
     <div class="section">
-      <div class="section-title">🎰 Очередь бонусок</div>
+      <div class="section-title">🎰 Очередь бонусок <span style="margin-left:auto;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;font-size:11px;">Любое поле можно изменить в любой момент — впишите и нажмите Enter или 💾</span></div>
       <div class="section-body" style="padding:0;">
-        <div id="bonus-table-wrap">
+        <div id="bonus-table-wrap" style="overflow-x:auto;">
           <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">Добавьте первую бонуску ←</div>
         </div>
       </div>
@@ -602,15 +606,6 @@
     }
   }
 
-  async function setResult(id) {
-    const inp = document.querySelector(`[data-result-inp="${id}"]`);
-    if (!inp) return;
-    const val = inp.value.trim();
-    if (!val) return toast('Введите результат', 'err');
-    await api(`/api/bonus/${id}/result`, 'POST', { result: Number(val) });
-    toast('✅ Результат сохранён');
-  }
-
   async function activateBonus(id) {
     await api(`/api/bonus/${id}/activate`, 'POST');
     toast('▶ Бонуска активирована');
@@ -622,18 +617,31 @@
     toast('🗑️ Удалено');
   }
 
-  async function updateImage(id) {
-    const inp = document.querySelector(`[data-image-inp="${id}"]`);
-    if (!inp) return;
-    const url = inp.value.trim();
-    await api(`/api/bonus/${id}/image`, 'POST', { image: url || null });
-    toast('🖼️ Картинка обновлена');
-  }
-
   async function resetAll() {
     if (!confirm('Сбросить ВСЁ? Это удалит все бонуски и баланс!')) return;
     await api('/api/reset', 'POST');
     toast('♻️ Всё сброшено');
+  }
+
+  // ── Универсальное сохранение любого поля бонуски (название/цена/результат/картинка) ──
+  async function saveField(id, field) {
+    const inp = document.querySelector(`[data-field-inp="${id}:${field}"]`);
+    if (!inp) return;
+    const raw = inp.value.trim();
+
+    if ((field === 'game' || field === 'cost') && raw === '') {
+      return toast('Поле не может быть пустым', 'err');
+    }
+
+    const body = {};
+    body[field] = raw === '' ? null : raw;
+
+    const res = await api(`/api/bonus/${id}/edit`, 'POST', body);
+    if (res.ok) {
+      toast('✅ Сохранено');
+    } else {
+      toast('Ошибка: ' + (res.error || '?'), 'err');
+    }
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -712,29 +720,35 @@
           ? `<span class="status-chip completed">✓ Готово</span>`
           : `<span class="status-chip pending">Ожидание</span>`;
 
-      const resultCell = b.status === 'active'
-        ? `<div class="result-input-row">
-             <input class="form-input" type="number" placeholder="Сколько дала?" data-result-inp="${b.id}" onkeydown="if(event.key==='Enter') setResult(${b.id})">
-             <button class="btn btn-success btn-sm" onclick="setResult(${b.id})">✓</button>
-           </div>`
-        : b.result !== null
-          ? `<span class="${isWin ? 'stat-value green' : 'stat-value red'}" style="font-family:'Orbitron',sans-serif;font-size:12px;">${fmt(b.result)}</span>`
-          : `<span style="color:var(--muted);font-size:12px;">—</span>`;
-
       const activateBtn = b.status !== 'active'
         ? `<button class="btn btn-ghost btn-sm" title="Сделать активной" onclick="activateBonus(${b.id})">▶</button>`
         : '';
 
       return `
         <tr class="bonus-row ${b.status === 'active' ? 'active-row' : b.status === 'completed' ? 'completed-row' : 'pending-row'}">
-          <td class="td-game">${b.game}</td>
-          <td class="td-cost">${fmt(b.cost)}</td>
-          <td>${resultCell}</td>
+          <td>
+            <div class="edit-row">
+              <input class="form-input edit-game" type="text" value="${b.game}" data-field-inp="${b.id}:game" onkeydown="if(event.key==='Enter') saveField(${b.id},'game')">
+              <button class="btn btn-ghost btn-sm" title="Сохранить" onclick="saveField(${b.id},'game')">💾</button>
+            </div>
+          </td>
+          <td>
+            <div class="edit-row">
+              <input class="form-input edit-cost" type="number" value="${b.cost}" data-field-inp="${b.id}:cost" onkeydown="if(event.key==='Enter') saveField(${b.id},'cost')">
+              <button class="btn btn-ghost btn-sm" title="Сохранить" onclick="saveField(${b.id},'cost')">💾</button>
+            </div>
+          </td>
+          <td>
+            <div class="edit-row">
+              <input class="form-input edit-result" type="number" placeholder="Сколько дала?" value="${b.result !== null ? b.result : ''}" data-field-inp="${b.id}:result" onkeydown="if(event.key==='Enter') saveField(${b.id},'result')">
+              <button class="btn btn-success btn-sm" title="Сохранить результат" onclick="saveField(${b.id},'result')">✓</button>
+            </div>
+          </td>
           <td>${multChip}</td>
           <td>
-            <div class="result-input-row" style="min-width:180px;">
-              <input class="form-input" type="text" placeholder="URL картинки" value="${b.image || ''}" data-image-inp="${b.id}" onkeydown="if(event.key==='Enter') updateImage(${b.id})">
-              <button class="btn btn-ghost btn-sm" onclick="updateImage(${b.id})">🖼</button>
+            <div class="edit-row">
+              <input class="form-input edit-image" type="text" placeholder="URL картинки" value="${b.image || ''}" data-field-inp="${b.id}:image" onkeydown="if(event.key==='Enter') saveField(${b.id},'image')">
+              <button class="btn btn-ghost btn-sm" title="Сохранить" onclick="saveField(${b.id},'image')">🖼</button>
             </div>
           </td>
           <td>${statusChip}</td>
