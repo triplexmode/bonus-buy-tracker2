@@ -366,11 +366,13 @@
   .edit-row .edit-result { width: 110px; }
   .edit-row .edit-image  { width: 150px; }
 
-  /* Live image preview — то же object-fit:contain что и в виджете,
-     чтобы сразу видеть, как картинка ляжет в эфире */
+  /* Live image preview — то же поведение что и в виджете:
+     высота фиксирована, ширина авто под пропорции картинки, без пустот */
   .img-preview {
-    width: 44px;
     height: 32px;
+    width: auto;
+    min-width: 32px;
+    max-width: 64px;
     border-radius: 6px;
     background: var(--bg4);
     border: 1px solid var(--border2);
@@ -379,15 +381,13 @@
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
-    padding: 2px;
   }
 
   .img-preview img {
-    max-width: 100%;
-    max-height: 100%;
+    display: block;
+    height: 100%;
     width: auto;
-    height: auto;
-    object-fit: contain;
+    max-width: 64px;
   }
 
   .img-preview .ph {
