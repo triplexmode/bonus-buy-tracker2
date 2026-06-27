@@ -135,15 +135,6 @@
     gap: 8px;
   }
 
-  .section-title .hint {
-    margin-left: auto;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: none;
-    letter-spacing: 0;
-    font-size: 11px;
-  }
-
   .section-body { padding: 16px; }
 
   /* ── STATS GRID ────────────────────────────────────── */
@@ -361,39 +352,10 @@
     font-size: 12px;
   }
 
-  .edit-row .edit-game   { width: 150px; }
-  .edit-row .edit-cost   { width: 100px; }
-  .edit-row .edit-result { width: 110px; }
-  .edit-row .edit-image  { width: 150px; }
-
-  /* Live image preview — то же поведение что и в виджете:
-     высота фиксирована, ширина авто под пропорции картинки, без пустот */
-  .img-preview {
-    height: 32px;
-    width: auto;
-    min-width: 32px;
-    max-width: 64px;
-    border-radius: 6px;
-    background: var(--bg4);
-    border: 1px solid var(--border2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-
-  .img-preview img {
-    display: block;
-    height: 100%;
-    width: auto;
-    max-width: 64px;
-  }
-
-  .img-preview .ph {
-    font-size: 14px;
-    opacity: 0.4;
-  }
+  .edit-row .edit-game  { width: 150px; }
+  .edit-row .edit-cost  { width: 100px; }
+  .edit-row .edit-result{ width: 110px; }
+  .edit-row .edit-image { width: 150px; }
 
   /* ── TOAST ─────────────────────────────────────────── */
   #toast {
@@ -521,13 +483,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Картинка (URL, необязательно)</label>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div class="img-preview" id="add-preview">
-              <img id="add-preview-img" src="" style="display:none" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-              <span class="ph">🖼</span>
-            </div>
-            <input class="form-input" id="inp-image" type="text" placeholder="https://..." oninput="previewAdd(this.value)" style="flex:1;">
-          </div>
+          <input class="form-input" id="inp-image" type="text" placeholder="https://...">
         </div>
         <button class="btn btn-primary btn-full" onclick="addBonus()">Добавить в очередь</button>
       </div>
@@ -585,7 +541,7 @@
 
     <!-- Bonus list -->
     <div class="section">
-      <div class="section-title">🎰 Очередь бонусок <span class="hint">Любое поле можно менять в любой момент — впишите и нажмите Enter или кнопку рядом</span></div>
+      <div class="section-title">🎰 Очередь бонусок <span style="margin-left:auto;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;font-size:11px;">Любое поле можно изменить в любой момент — впишите и нажмите Enter или 💾</span></div>
       <div class="section-body" style="padding:0;">
         <div id="bonus-table-wrap" style="overflow-x:auto;">
           <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">Добавьте первую бонуску ←</div>
@@ -633,20 +589,6 @@
     toast('✅ Баланс обновлён');
   }
 
-  // Live-превью картинки в форме "Добавить бонуску"
-  function previewAdd(url) {
-    const img = $('add-preview-img');
-    const ph  = document.querySelector('#add-preview .ph');
-    if (url) {
-      img.src = url;
-      img.style.display = '';
-      ph.style.display = 'none';
-    } else {
-      img.style.display = 'none';
-      ph.style.display = '';
-    }
-  }
-
   async function addBonus() {
     const game  = $('inp-game').value.trim();
     const cost  = $('inp-cost').value.trim();
@@ -658,7 +600,6 @@
       $('inp-game').value = '';
       $('inp-cost').value = '';
       $('inp-image').value = '';
-      previewAdd('');
       toast('✅ Бонуска добавлена в очередь');
     } else {
       toast('Ошибка: ' + (res.error || '?'), 'err');
@@ -680,22 +621,6 @@
     if (!confirm('Сбросить ВСЁ? Это удалит все бонуски и баланс!')) return;
     await api('/api/reset', 'POST');
     toast('♻️ Всё сброшено');
-  }
-
-  // Live-превью картинки в строке таблицы (по id бонуски)
-  function previewRow(id, url) {
-    const wrap = document.getElementById(`preview-${id}`);
-    if (!wrap) return;
-    const img = wrap.querySelector('img');
-    const ph  = wrap.querySelector('.ph');
-    if (url) {
-      img.src = url;
-      img.style.display = '';
-      ph.style.display = 'none';
-    } else {
-      img.style.display = 'none';
-      ph.style.display = '';
-    }
   }
 
   // ── Универсальное сохранение любого поля бонуски (название/цена/результат/картинка) ──
@@ -822,12 +747,8 @@
           <td>${multChip}</td>
           <td>
             <div class="edit-row">
-              <div class="img-preview" id="preview-${b.id}">
-                <img src="${b.image || ''}" style="${b.image ? '' : 'display:none'}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                <span class="ph" style="${b.image ? 'display:none' : ''}">🖼</span>
-              </div>
-              <input class="form-input edit-image" type="text" placeholder="URL картинки" value="${b.image || ''}" data-field-inp="${b.id}:image" oninput="previewRow(${b.id}, this.value)" onkeydown="if(event.key==='Enter') saveField(${b.id},'image')">
-              <button class="btn btn-ghost btn-sm" title="Сохранить" onclick="saveField(${b.id},'image')">💾</button>
+              <input class="form-input edit-image" type="text" placeholder="URL картинки" value="${b.image || ''}" data-field-inp="${b.id}:image" onkeydown="if(event.key==='Enter') saveField(${b.id},'image')">
+              <button class="btn btn-ghost btn-sm" title="Сохранить" onclick="saveField(${b.id},'image')">🖼</button>
             </div>
           </td>
           <td>${statusChip}</td>
