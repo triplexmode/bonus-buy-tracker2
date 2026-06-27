@@ -152,7 +152,7 @@
 
   .bonus-item {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 56px 1fr auto;
     align-items: center;
     gap: 10px;
     padding: 7px 14px;
@@ -190,12 +190,10 @@
   /* PENDING */
   .bonus-item.pending { opacity: 0.55; }
 
-  /* Game image — рамка подстраивается под пропорции картинки, без пустот и без обрезки */
+  /* Game image — contain, не обрезаем логотип слота криво */
   .game-img {
+    width: 56px;
     height: 40px;
-    width: auto;
-    min-width: 40px;
-    max-width: 80px;
     border-radius: 6px;
     background: var(--bg3);
     border: 1px solid rgba(255,255,255,0.1);
@@ -204,13 +202,15 @@
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
+    padding: 3px;
   }
 
   .game-img img {
-    display: block;
-    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     width: auto;
-    max-width: 80px;
+    height: auto;
+    object-fit: contain;
   }
 
   .game-img .placeholder {
