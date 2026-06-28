@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="light only">
 <title>Bonus Buy Widget</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
@@ -11,7 +10,6 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    color-scheme: light only;
     --gold:    #FFD666;
     --gold-d:  #E5A800;
     --green:   #4ADE80;
@@ -32,7 +30,6 @@
     width: var(--w);
     min-height: 100vh;
     overflow: hidden;
-    zoom: 1.5;
   }
 
   #widget {
@@ -40,6 +37,7 @@
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 16px;
+    backdrop-filter: blur(12px);
     overflow: hidden;
     box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,214,102,0.08);
   }
@@ -150,9 +148,9 @@
 
   .current-slot .bonus-item::after { display: none; }
 
-  /* ── BONUS LIST (история, скроллится) ──────── */
+  /* ── BONUS LIST ──────────────────────────── */
   .bonus-list-wrap {
-    height: 185px;
+    max-height: 185px;
     overflow: hidden;
   }
 
@@ -168,6 +166,8 @@
     will-change: transform;
   }
 
+
+
   .bonus-list {
     padding: 8px 0 4px;
     display: flex;
@@ -177,7 +177,7 @@
 
   .bonus-item {
     display: grid;
-    grid-template-columns: 56px 1fr auto;
+    grid-template-columns: 36px 1fr auto;
     align-items: center;
     gap: 10px;
     padding: 7px 14px;
@@ -215,10 +215,10 @@
   /* PENDING */
   .bonus-item.pending { opacity: 0.55; }
 
-  /* Game image — всегда заполняет квадрат целиком, без пустот */
+  /* Game image — пропорции ближе к 3:4 (как обложки слотов на Stake, 408x546) */
   .game-img {
-    width: 56px;
-    height: 40px;
+    width: 36px;
+    height: 48px;
     border-radius: 6px;
     background: var(--bg3);
     border: 1px solid rgba(255,255,255,0.1);
@@ -232,12 +232,18 @@
   .game-img img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: fill;
   }
 
   .game-img .placeholder {
     font-size: 18px;
     line-height: 1;
+  }
+
+  .placeholder-icon {
+    width: 22px;
+    height: 22px;
+    display: block;
   }
 
   /* Game info */
@@ -412,7 +418,7 @@
     </div>
 
     <!-- Текущий слот (закреплён, не скроллится) -->
-    <div class="current-slot" id="current-slot"></div>
+    <div class="current-slot" id="current-slot" style="display:none;"></div>
 
     <!-- История (скроллится) -->
     <div class="bonus-list-wrap"><div class="bonus-list" id="bonus-list">
@@ -420,7 +426,7 @@
     </div></div>
 
     <!-- Footer summary -->
-    <div class="footer" id="footer">
+    <div class="footer" id="footer" style="display:none;">
       <div class="footer-stat">
         <span class="footer-stat-label">Потрачено</span>
         <span class="footer-stat-val gold" id="total-spent">0 $</span>
@@ -463,6 +469,16 @@
     return GAME_ICONS.default;
   }
 
+  // Дефолтный плейсхолдер (когда нет картинки и название не совпало ни с одной игрой) —
+  // это иконка казино/слота, заменена на apple-эмодзи. Остальные emoji (по конкретным играм) не трогаем.
+  function getPlaceholderHtml(name) {
+    const emoji = getEmoji(name);
+    if (emoji === GAME_ICONS.default) {
+      return `<img class="placeholder-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/1f3b0.png" alt="🎰">`;
+    }
+    return emoji;
+  }
+
   function calcStats(state) {
     const bonuses = state.bonuses || [];
     const completed = bonuses.filter(b => b.status === 'completed' && b.result !== null);
@@ -474,6 +490,8 @@
     const wins        = completed.filter(b => b.result >= b.cost).length;
     return { totalCost, totalResult, net, bonusX, totalX, wins, completed: completed.length };
   }
+
+  let lastActiveId = null;
 
   // ── Marquee scroll ────────────────────────────────────────────────────────
   let marqueeStarted = false;
@@ -495,6 +513,19 @@
     list.classList.add('scrolling');
   }
 
+  function scrollToActive() {
+    const wrap = document.querySelector('.bonus-list-wrap');
+    const list = document.getElementById('bonus-list');
+    if (!wrap || !list) return;
+    const activeItem = list.querySelector('.bonus-item.active');
+    if (!activeItem) return;
+    const itemTop    = activeItem.offsetTop;
+    const itemHeight = activeItem.offsetHeight;
+    const wrapHeight = wrap.clientHeight;
+    const target     = itemTop - (wrapHeight / 2) + (itemHeight / 2);
+    wrap.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+  }
+
   function bonusRowHtml(b) {
     const multVal = b.result !== null ? b.result / b.cost : null;
     const isWin   = b.result !== null && b.result >= b.cost;
@@ -510,7 +541,7 @@
     const imgContent = b.image
       ? `<img src="${b.image}" alt="${b.game}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
       : '';
-    const emoji = getEmoji(b.game);
+    const placeholderHtml = getPlaceholderHtml(b.game);
 
     const resultHtml = b.result !== null
       ? `<span class="arrow">→</span><span class="result-val ${isWin ? 'win' : 'loss'}">${fmt(b.result)}</span>`
@@ -520,7 +551,7 @@
       <div class="bonus-item ${b.status}" data-id="${b.id}">
         <div class="game-img">
           ${imgContent}
-          <span class="placeholder" style="${b.image ? 'display:none' : ''}">${emoji}</span>
+          <span class="placeholder" style="${b.image ? 'display:none' : ''}">${placeholderHtml}</span>
         </div>
         <div class="game-info">
           <div class="game-name">${b.game}</div>
@@ -570,34 +601,35 @@
       txPill.classList.remove('pos', 'neg');
     }
 
-    // Текущий слот + история
+    // Bonus list — текущий слот закреплён сверху, остальное скроллится историей
+    const list = document.getElementById('bonus-list');
+    const currentSlot = document.getElementById('current-slot');
     const bonuses = state.bonuses || [];
+
+    if (bonuses.length === 0) {
+      list.innerHTML = '<div class="empty">Бонусы не добавлены</div>';
+      currentSlot.style.display = 'none';
+      currentSlot.innerHTML = '';
+      document.getElementById('footer').style.display = 'none';
+      return;
+    }
+
     const activeBonus  = bonuses.find(b => b.status === 'active');
     const historyItems = bonuses.filter(b => b.status !== 'active');
 
-    // Закреплённая панель текущего слота — всегда видна, не скроллится
-    const currentSlot = document.getElementById('current-slot');
-    currentSlot.innerHTML = activeBonus
-      ? `<div class="current-slot-label">▶ Текущий слот</div>${bonusRowHtml(activeBonus)}`
-      : `<div class="current-slot-label">▶ Текущий слот</div>
-         <div class="bonus-item" style="opacity:0.5;">
-           <div class="game-img"><span class="placeholder">🎰</span></div>
-           <div class="game-info">
-             <div class="game-name">Ожидание бонуски…</div>
-             <div class="game-cost-row"><span class="cost-val">—</span></div>
-           </div>
-           <div class="badge-col"><span class="mult-badge pending">?</span></div>
-         </div>`;
+    if (activeBonus) {
+      currentSlot.style.display = 'block';
+      currentSlot.innerHTML = `<div class="current-slot-label">▶ Текущий слот</div>${bonusRowHtml(activeBonus)}`;
+    } else {
+      currentSlot.style.display = 'none';
+      currentSlot.innerHTML = '';
+    }
 
-    // История — скроллится отдельно, без текущего слота
-    const list = document.getElementById('bonus-list');
-    list.innerHTML = bonuses.length === 0
-      ? '<div class="empty">Бонусы не добавлены</div>'
-      : (historyItems.length === 0
-          ? '<div class="empty">История пуста</div>'
-          : historyItems.map(bonusRowHtml).join(''));
+    list.innerHTML = historyItems.length === 0
+      ? '<div class="empty">История пуста</div>'
+      : historyItems.map(bonusRowHtml).join('');
 
-    // Автопрокрутка истории, если не влезает в отведённую высоту
+    // Auto-scroll + start marquee (для истории, без текущего слота)
     requestAnimationFrame(() => {
       const wrap2 = document.querySelector('.bonus-list-wrap');
       const list2 = document.getElementById('bonus-list');
@@ -607,6 +639,7 @@
           list2.classList.add('scrolling');
           startMarquee();
         } else {
+          // не хватает контента — убираем анимацию и сбрасываем флаг
           list2.classList.remove('scrolling');
           marqueeStarted = false;
         }
@@ -614,6 +647,8 @@
     });
 
     // Footer
+    const footer = document.getElementById('footer');
+    footer.style.display = 'flex';
     document.getElementById('total-spent').textContent = fmt(stats.totalCost);
     const wonEl = document.getElementById('total-won');
     wonEl.textContent = fmt(stats.totalResult);
