@@ -150,7 +150,7 @@
 
   /* ── BONUS LIST ──────────────────────────── */
   .bonus-list-wrap {
-    max-height: 185px;
+    height: 185px;
     overflow: hidden;
   }
 
@@ -162,7 +162,7 @@
   }
 
   .bonus-list.scrolling {
-    animation: marquee-scroll 12s linear infinite;
+    animation: marquee-scroll var(--scroll-duration, 12s) linear infinite;
     will-change: transform;
   }
 
@@ -418,7 +418,7 @@
     </div>
 
     <!-- Текущий слот (закреплён, не скроллится) -->
-    <div class="current-slot" id="current-slot" style="display:none;"></div>
+    <div class="current-slot" id="current-slot"></div>
 
     <!-- История (скроллится) -->
     <div class="bonus-list-wrap"><div class="bonus-list" id="bonus-list">
@@ -426,7 +426,7 @@
     </div></div>
 
     <!-- Footer summary -->
-    <div class="footer" id="footer" style="display:none;">
+    <div class="footer" id="footer">
       <div class="footer-stat">
         <span class="footer-stat-label">Потрачено</span>
         <span class="footer-stat-val gold" id="total-spent">0 $</span>
@@ -493,8 +493,17 @@
 
   let lastActiveId = null;
 
-  // ── Marquee scroll ────────────────────────────────────────────────────────
+  // ── Marquee scroll — постоянная скорость (px/сек), а не фиксированная длительность ──
+  const SCROLL_SPEED_PX_S = 35;
   let marqueeStarted = false;
+
+  function applyMarqueeSpeed(list, wrap) {
+    const distance = list.scrollHeight - wrap.clientHeight;
+    if (distance <= 0) return;
+    const scrollSeconds = distance / SCROLL_SPEED_PX_S;
+    const totalDuration = Math.max(8, scrollSeconds / 0.9); // 0–90% кейфрейма = время самой прокрутки
+    list.style.setProperty('--scroll-duration', totalDuration.toFixed(2) + 's');
+  }
 
   function startMarquee() {
     if (marqueeStarted) return;
@@ -510,6 +519,7 @@
       setTimeout(updateMarquee, 500);
       return;
     }
+    applyMarqueeSpeed(list, wrap);
     list.classList.add('scrolling');
   }
 
@@ -601,41 +611,40 @@
       txPill.classList.remove('pos', 'neg');
     }
 
-    // Bonus list — текущий слот закреплён сверху, остальное скроллится историей
+    // Bonus list — текущий слот закреплён сверху (всегда виден), история скроллится отдельно
     const list = document.getElementById('bonus-list');
     const currentSlot = document.getElementById('current-slot');
     const bonuses = state.bonuses || [];
 
-    if (bonuses.length === 0) {
-      list.innerHTML = '<div class="empty">Бонусы не добавлены</div>';
-      currentSlot.style.display = 'none';
-      currentSlot.innerHTML = '';
-      document.getElementById('footer').style.display = 'none';
-      return;
-    }
-
     const activeBonus  = bonuses.find(b => b.status === 'active');
     const historyItems = bonuses.filter(b => b.status !== 'active');
 
-    if (activeBonus) {
-      currentSlot.style.display = 'block';
-      currentSlot.innerHTML = `<div class="current-slot-label">▶ Текущий слот</div>${bonusRowHtml(activeBonus)}`;
-    } else {
-      currentSlot.style.display = 'none';
-      currentSlot.innerHTML = '';
-    }
+    currentSlot.innerHTML = activeBonus
+      ? `<div class="current-slot-label">▶ Текущий слот</div>${bonusRowHtml(activeBonus)}`
+      : `<div class="current-slot-label">▶ Текущий слот</div>
+         <div class="bonus-item" style="opacity:0.5;">
+           <div class="game-img"><img class="placeholder-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/1f3b0.png" alt="🎰"></div>
+           <div class="game-info">
+             <div class="game-name">Ожидание бонуски…</div>
+             <div class="game-cost-row"><span class="cost-val">—</span></div>
+           </div>
+           <div class="badge-col"><span class="mult-badge pending">?</span></div>
+         </div>`;
 
-    list.innerHTML = historyItems.length === 0
-      ? '<div class="empty">История пуста</div>'
-      : historyItems.map(bonusRowHtml).join('');
+    list.innerHTML = bonuses.length === 0
+      ? '<div class="empty">Бонусы не добавлены</div>'
+      : (historyItems.length === 0
+          ? '<div class="empty">История пуста</div>'
+          : historyItems.map(bonusRowHtml).join(''));
 
-    // Auto-scroll + start marquee (для истории, без текущего слота)
+    // Автопрокрутка истории — постоянная скорость, пересчитываем на каждый рендер
     requestAnimationFrame(() => {
       const wrap2 = document.querySelector('.bonus-list-wrap');
       const list2 = document.getElementById('bonus-list');
       if (wrap2 && list2) {
         const canScroll = list2.scrollHeight > wrap2.clientHeight;
         if (canScroll) {
+          applyMarqueeSpeed(list2, wrap2);
           list2.classList.add('scrolling');
           startMarquee();
         } else {
@@ -646,9 +655,7 @@
       }
     });
 
-    // Footer
-    const footer = document.getElementById('footer');
-    footer.style.display = 'flex';
+    // Footer — всегда виден
     document.getElementById('total-spent').textContent = fmt(stats.totalCost);
     const wonEl = document.getElementById('total-won');
     wonEl.textContent = fmt(stats.totalResult);
