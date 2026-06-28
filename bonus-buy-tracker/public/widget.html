@@ -240,10 +240,10 @@
     line-height: 1;
   }
 
-  .placeholder-icon {
+  .game-img .placeholder-icon {
     width: 22px;
     height: 22px;
-    display: block;
+    object-fit: contain;
   }
 
   /* Game info */
@@ -366,6 +366,40 @@
     letter-spacing: 0.5px;
   }
 
+  /* ── BRAND BAR (kick-тег + подпись автора) ── */
+  .brand-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 14px;
+    background: rgba(0,0,0,0.25);
+    border-top: 1px solid var(--border);
+  }
+
+  .kick-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.3px;
+  }
+
+  .kick-icon {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    display: block;
+  }
+
+  .brand-credit {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+  }
+
   /* ── CONNECTING ──────────────────────────── */
   #connecting {
     position: absolute;
@@ -439,6 +473,12 @@
         <span class="footer-stat-label">Профит</span>
         <span class="footer-stat-val" id="net-profit">0 $</span>
       </div>
+    </div>
+
+    <!-- Kick-тег + подпись автора -->
+    <div class="brand-bar">
+      <span class="kick-tag"><img class="kick-icon" src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/kick.png" alt="Kick">n1kki_fn</span>
+      <span class="brand-credit">by triplexmode</span>
     </div>
   </div>
 </div>
