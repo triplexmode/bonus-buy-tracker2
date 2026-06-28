@@ -72,7 +72,9 @@
   }
 
   .balance-icon {
-    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    display: block;
     filter: drop-shadow(0 0 6px rgba(255,200,0,0.6));
   }
 
@@ -118,9 +120,15 @@
   .stars-block {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     color: var(--gold);
     font-size: 12px;
+  }
+
+  .star-icon {
+    width: 13px;
+    height: 13px;
+    display: block;
   }
 
   /* ── BONUS LIST ──────────────────────────── */
@@ -128,6 +136,25 @@
     height: 185px;
     overflow: hidden;
   }
+
+  /* ── CURRENT SLOT (закреплён, не скроллится) ─────── */
+  .current-slot {
+    padding: 8px 0 2px;
+    background: linear-gradient(90deg, rgba(255,214,102,0.06) 0%, transparent 80%);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .current-slot-label {
+    padding: 0 14px;
+    margin-bottom: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+  }
+
+  .current-slot .bonus-item::after { display: none; }
 
   @keyframes marquee-scroll {
     0%   { transform: translateY(0); }
@@ -152,7 +179,7 @@
 
   .bonus-item {
     display: grid;
-    grid-template-columns: 48px 1fr auto;
+    grid-template-columns: 56px 1fr auto;
     align-items: center;
     gap: 10px;
     padding: 7px 14px;
@@ -190,12 +217,11 @@
   /* PENDING */
   .bonus-item.pending { opacity: 0.55; }
 
-  /* Game image */
+  /* Game image — contain, не обрезаем логотип слота криво */
   .game-img {
-    width: 48px;
-    height: 34px;
+    width: 56px;
+    height: 40px;
     border-radius: 6px;
-    object-fit: cover;
     background: var(--bg3);
     border: 1px solid rgba(255,255,255,0.1);
     display: flex;
@@ -203,12 +229,15 @@
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
+    padding: 3px;
   }
 
   .game-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
   }
 
   .game-img .placeholder {
@@ -373,10 +402,10 @@
     <!-- Top bar -->
     <div class="top-bar">
       <div class="balance-block">
-        <span class="balance-icon">💰</span>
+        <img class="balance-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/1f4b0.png" alt="💰">
         <span class="balance-val" id="balance-val">—</span>
       </div>
-      <div class="stars-block" id="stars-block">⭐ <span id="stars-count">0</span></div>
+      <div class="stars-block" id="stars-block"><img class="star-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/2b50.png" alt="⭐"><span id="stars-count">0</span></div>
       <div class="stat-pill bonus-x" id="bonus-x-pill">
         <span class="pill-label">Бонус</span>
         <span class="pill-val" id="bonus-x-val">—</span>
@@ -387,7 +416,10 @@
       </div>
     </div>
 
-    <!-- Bonus list -->
+    <!-- Текущий слот (закреплён, не скроллится) -->
+    <div class="current-slot" id="current-slot"></div>
+
+    <!-- История (скроллится) -->
     <div class="bonus-list-wrap"><div class="bonus-list" id="bonus-list">
       <div class="empty">Бонусы не добавлены</div>
     </div></div>
@@ -483,6 +515,47 @@
     wrap.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
   }
 
+  function bonusRowHtml(b) {
+    const multVal = b.result !== null ? b.result / b.cost : null;
+    const isWin   = b.result !== null && b.result >= b.cost;
+
+    const multBadge = multVal !== null
+      ? `<span class="mult-badge ${isWin ? 'win' : 'loss'}">${fmtX(multVal)}</span>`
+      : `<span class="mult-badge pending">?</span>`;
+
+    const activeBadge = b.status === 'active'
+      ? `<span class="active-badge">▶ ОТКРЫТИЕ</span>`
+      : '';
+
+    const imgContent = b.image
+      ? `<img src="${b.image}" alt="${b.game}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : '';
+    const emoji = getEmoji(b.game);
+
+    const resultHtml = b.result !== null
+      ? `<span class="arrow">→</span><span class="result-val ${isWin ? 'win' : 'loss'}">${fmt(b.result)}</span>`
+      : '';
+
+    return `
+      <div class="bonus-item ${b.status}" data-id="${b.id}">
+        <div class="game-img">
+          ${imgContent}
+          <span class="placeholder" style="${b.image ? 'display:none' : ''}">${emoji}</span>
+        </div>
+        <div class="game-info">
+          <div class="game-name">${b.game}</div>
+          <div class="game-cost-row">
+            <span class="cost-val">${fmt(b.cost)}</span>
+            ${resultHtml}
+          </div>
+        </div>
+        <div class="badge-col">
+          ${multBadge}
+          ${activeBadge}
+        </div>
+      </div>`;
+  }
+
   function render(state) {
     document.getElementById('connecting').classList.add('hidden');
     const stats = calcStats(state);
@@ -517,57 +590,34 @@
       txPill.classList.remove('pos', 'neg');
     }
 
-    // Bonus list
-    const list = document.getElementById('bonus-list');
+    // Текущий слот + история
     const bonuses = state.bonuses || [];
+    const activeBonus  = bonuses.find(b => b.status === 'active');
+    const historyItems = bonuses.filter(b => b.status !== 'active');
 
+    // Закреплённая панель текущего слота — не скроллится
+    const currentSlot = document.getElementById('current-slot');
+    currentSlot.innerHTML = activeBonus
+      ? `<div class="current-slot-label">▶ Текущий слот</div>${bonusRowHtml(activeBonus)}`
+      : `<div class="current-slot-label">▶ Текущий слот</div>
+         <div class="bonus-item" style="opacity:0.5;">
+           <div class="game-img"><span class="placeholder">🎰</span></div>
+           <div class="game-info">
+             <div class="game-name">Ожидание бонуски…</div>
+             <div class="game-cost-row"><span class="cost-val">—</span></div>
+           </div>
+           <div class="badge-col"><span class="mult-badge pending">?</span></div>
+         </div>`;
+
+    // История — скроллится отдельно, без текущего слота
+    const list = document.getElementById('bonus-list');
     list.innerHTML = bonuses.length === 0
       ? '<div class="empty">Бонусы не добавлены</div>'
-      : bonuses.map(b => {
-      const multVal = b.result !== null ? b.result / b.cost : null;
-      const isWin   = b.result !== null && b.result >= b.cost;
-      const isLoss  = b.result !== null && b.result < b.cost;
+      : (historyItems.length === 0
+          ? '<div class="empty">История пуста</div>'
+          : historyItems.map(bonusRowHtml).join(''));
 
-      const multBadge = multVal !== null
-        ? `<span class="mult-badge ${isWin ? 'win' : 'loss'}">${fmtX(multVal)}</span>`
-        : `<span class="mult-badge pending">?</span>`;
-
-      const activeBadge = b.status === 'active'
-        ? `<span class="active-badge">▶ ОТКРЫТИЕ</span>`
-        : '';
-
-      const imgContent = b.image
-        ? `<img src="${b.image}" alt="${b.game}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-        : '';
-      const emoji = getEmoji(b.game);
-
-      const resultHtml = b.result !== null
-        ? `<span class="arrow">→</span><span class="result-val ${isWin ? 'win' : 'loss'}">${fmt(b.result)}</span>`
-        : '';
-
-      return `
-        <div class="bonus-item ${b.status}" data-id="${b.id}">
-          <div class="game-img">
-            ${imgContent}
-            <span class="placeholder" style="${b.image ? 'display:none' : ''}">${emoji}</span>
-          </div>
-          <div class="game-info">
-            <div class="game-name">${b.game}</div>
-            <div class="game-cost-row">
-              <span class="cost-val">${fmt(b.cost)}</span>
-              ${resultHtml}
-            </div>
-          </div>
-          <div class="badge-col">
-            ${multBadge}
-            ${activeBadge}
-          </div>
-        </div>`;
-    }).join('');
-
-    // Auto-scroll to active item + start marquee
-    const activeBonus = bonuses.find(b => b.status === 'active');
-    const activeId = activeBonus ? activeBonus.id : null;
+    // Автопрокрутка истории, если не влезает в отведённую высоту
     requestAnimationFrame(() => {
       const wrap2 = document.querySelector('.bonus-list-wrap');
       const list2 = document.getElementById('bonus-list');
@@ -577,17 +627,13 @@
           list2.classList.add('scrolling');
           startMarquee();
         } else {
-          // не хватает контента — убираем анимацию и сбрасываем флаг
           list2.classList.remove('scrolling');
           marqueeStarted = false;
         }
       }
-      lastActiveId = activeId;
     });
 
     // Footer
-    const footer = document.getElementById('footer');
-    footer.style.display = 'flex';
     document.getElementById('total-spent').textContent = fmt(stats.totalCost);
     const wonEl = document.getElementById('total-won');
     wonEl.textContent = fmt(stats.totalResult);
