@@ -128,6 +128,54 @@ app.post('/api/bonus/:id/image', (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── EDIT — менять любое поле бонуски в любой момент ──────────────────────────
+app.post('/api/bonus/:id/edit', (req, res) => {
+  const { game, cost, result, image } = req.body;
+  const state = loadState();
+  const bonus = state.bonuses.find(b => b.id == req.params.id);
+  if (!bonus) return res.status(404).json({ error: 'not found' });
+
+  if (game !== undefined && game !== null && String(game).trim() !== '') {
+    bonus.game = String(game).trim();
+  }
+
+  if (cost !== undefined && cost !== null && String(cost).trim() !== '') {
+    const n = Number(cost);
+    if (!Number.isNaN(n)) bonus.cost = n;
+  }
+
+  if (image !== undefined) {
+    bonus.image = image || null;
+  }
+
+  if (result !== undefined) {
+    if (result === null || String(result).trim() === '') {
+      // явная очистка результата
+      bonus.result = null;
+    } else {
+      const n = Number(result);
+      if (!Number.isNaN(n)) {
+        const wasCompleted = bonus.status === 'completed';
+        bonus.result = n;
+
+        if (!wasCompleted) {
+          bonus.status = 'completed';
+
+          // продвигаем очередь только если активной бонуски сейчас больше нет
+          const stillHasActive = state.bonuses.some(b => b.status === 'active' && b.id !== bonus.id);
+          if (!stillHasActive) {
+            const nextPending = state.bonuses.find(b => b.status === 'pending');
+            if (nextPending) nextPending.status = 'active';
+          }
+        }
+      }
+    }
+  }
+
+  saveState(state);
+  res.json({ ok: true, bonus });
+});
+
 app.delete('/api/bonus/:id', (req, res) => {
   const state = loadState();
   state.bonuses = state.bonuses.filter(b => b.id != req.params.id);
