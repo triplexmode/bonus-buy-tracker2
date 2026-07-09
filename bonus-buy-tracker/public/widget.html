@@ -30,6 +30,7 @@
     width: var(--w);
     min-height: 100vh;
     overflow: hidden;
+    zoom: 1.5;
   }
 
   #widget {
@@ -70,7 +71,9 @@
   }
 
   .balance-icon {
-    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    display: block;
     filter: drop-shadow(0 0 6px rgba(255,200,0,0.6));
   }
 
@@ -116,13 +119,37 @@
   .stars-block {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     color: var(--gold);
     font-size: 12px;
   }
 
+  .star-icon {
+    width: 13px;
+    height: 13px;
+    display: block;
+  }
+
+  /* ── CURRENT SLOT (закреплён, не скроллится) ─────── */
+  .current-slot {
+    padding: 8px 0 2px;
+    background: linear-gradient(90deg, rgba(255,214,102,0.06) 0%, transparent 80%);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .current-slot-label {
+    padding: 0 14px;
+    margin-bottom: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+  }
+
+  .current-slot .bonus-item::after { display: none; }
+
   /* ── BONUS LIST ──────────────────────────── */
-  /* height (не max-height) — виджет всегда полного размера */
   .bonus-list-wrap {
     height: 185px;
     overflow: hidden;
@@ -136,7 +163,7 @@
   }
 
   .bonus-list.scrolling {
-    animation: marquee-scroll 12s linear infinite;
+    animation: marquee-scroll var(--scroll-duration, 12s) linear infinite;
     will-change: transform;
   }
 
@@ -151,7 +178,7 @@
 
   .bonus-item {
     display: grid;
-    grid-template-columns: 48px 1fr auto;
+    grid-template-columns: 36px 1fr auto;
     align-items: center;
     gap: 10px;
     padding: 7px 14px;
@@ -189,12 +216,11 @@
   /* PENDING */
   .bonus-item.pending { opacity: 0.55; }
 
-  /* Game image */
+  /* Game image — пропорции ближе к 3:4 (как обложки слотов на Stake, 408x546) */
   .game-img {
-    width: 48px;
-    height: 34px;
+    width: 36px;
+    height: 48px;
     border-radius: 6px;
-    object-fit: cover;
     background: var(--bg3);
     border: 1px solid rgba(255,255,255,0.1);
     display: flex;
@@ -207,23 +233,18 @@
   .game-img img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: fill;
   }
 
-  /* Плейсхолдер — инициалы на градиентном фоне вместо эмодзи */
   .game-img .placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    font-weight: 900;
-    color: rgba(255,255,255,0.9);
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    user-select: none;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .game-img .placeholder-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
   }
 
   /* Game info */
@@ -346,6 +367,40 @@
     letter-spacing: 0.5px;
   }
 
+  /* ── BRAND BAR (kick-тег + подпись автора) ── */
+  .brand-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 14px;
+    background: rgba(0,0,0,0.25);
+    border-top: 1px solid var(--border);
+  }
+
+  .kick-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.3px;
+  }
+
+  .kick-icon {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    display: block;
+  }
+
+  .brand-credit {
+    font-size: 9px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.3px;
+  }
+
   /* ── CONNECTING ──────────────────────────── */
   #connecting {
     position: absolute;
@@ -383,10 +438,10 @@
     <!-- Top bar -->
     <div class="top-bar">
       <div class="balance-block">
-        <span class="balance-icon">💰</span>
+        <img class="balance-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/1f4b0.png" alt="💰">
         <span class="balance-val" id="balance-val">—</span>
       </div>
-      <div class="stars-block" id="stars-block">⭐ <span id="stars-count">0</span></div>
+      <div class="stars-block" id="stars-block"><img class="star-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/2b50.png" alt="⭐"><span id="stars-count">0</span></div>
       <div class="stat-pill bonus-x" id="bonus-x-pill">
         <span class="pill-label">Бонус</span>
         <span class="pill-val" id="bonus-x-val">—</span>
@@ -397,12 +452,15 @@
       </div>
     </div>
 
-    <!-- Bonus list -->
+    <!-- Текущий слот (закреплён, не скроллится) -->
+    <div class="current-slot" id="current-slot"></div>
+
+    <!-- История (скроллится) -->
     <div class="bonus-list-wrap"><div class="bonus-list" id="bonus-list">
       <div class="empty">Бонусы не добавлены</div>
     </div></div>
 
-    <!-- Footer summary — всегда виден -->
+    <!-- Footer summary -->
     <div class="footer" id="footer">
       <div class="footer-stat">
         <span class="footer-stat-label">Потрачено</span>
@@ -417,6 +475,12 @@
         <span class="footer-stat-val" id="net-profit">0 $</span>
       </div>
     </div>
+
+    <!-- Kick-тег + подпись автора -->
+    <div class="brand-bar">
+      <span class="kick-tag"><img class="kick-icon" src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/kick.png" alt="Kick">n1kki_fn</span>
+      <span class="brand-credit">by triplexmode</span>
+    </div>
   </div>
 </div>
 
@@ -424,22 +488,36 @@
   const fmt = n => Number(n).toLocaleString('ru') + ' $';
   const fmtX = n => n.toFixed(2) + 'x';
 
-  // Генерирует уникальный цвет из названия игры
-  function strToHue(str) {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) & 0xffff;
-    return h % 360;
+  // Game emoji fallbacks
+  const GAME_ICONS = {
+    default: '🎰',
+    'sugar rush': '🍭',
+    'sweet bonanza': '🍬',
+    'dog house': '🐾',
+    'zeus': '⚡',
+    'gates of olympus': '🏛️',
+    'steamrunners': '🚂',
+    'fire': '🔥',
+    'book': '📖',
+    'wolf': '🐺',
+  };
+
+  function getEmoji(name) {
+    const n = (name || '').toLowerCase();
+    for (const [k, v] of Object.entries(GAME_ICONS)) {
+      if (n.includes(k)) return v;
+    }
+    return GAME_ICONS.default;
   }
 
-  // Красивый плейсхолдер — инициалы на градиентном фоне
-  function makePlaceholder(name) {
-    const words = (name || '?').trim().split(/\s+/);
-    const initials = words.length >= 2
-      ? (words[0][0] + words[1][0]).toUpperCase()
-      : words[0].slice(0, 2).toUpperCase();
-    const hue = strToHue(name || '');
-    const bg = `linear-gradient(135deg,hsl(${hue},55%,28%) 0%,hsl(${(hue+40)%360},60%,20%) 100%)`;
-    return `<span class="placeholder" style="background:${bg};">${initials}</span>`;
+  // Дефолтный плейсхолдер (когда нет картинки и название не совпало ни с одной игрой) —
+  // это иконка казино/слота, заменена на apple-эмодзи. Остальные emoji (по конкретным играм) не трогаем.
+  function getPlaceholderHtml(name) {
+    const emoji = getEmoji(name);
+    if (emoji === GAME_ICONS.default) {
+      return `<img class="placeholder-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/1f3b0.png" alt="🎰">`;
+    }
+    return emoji;
   }
 
   function calcStats(state) {
@@ -456,8 +534,17 @@
 
   let lastActiveId = null;
 
-  // ── Marquee scroll ────────────────────────────────────────────────────────
+  // ── Marquee scroll — постоянная скорость (px/сек), а не фиксированная длительность ──
+  const SCROLL_SPEED_PX_S = 35;
   let marqueeStarted = false;
+
+  function applyMarqueeSpeed(list, wrap) {
+    const distance = list.scrollHeight - wrap.clientHeight;
+    if (distance <= 0) return;
+    const scrollSeconds = distance / SCROLL_SPEED_PX_S;
+    const totalDuration = Math.max(8, scrollSeconds / 0.9); // 0–90% кейфрейма = время самой прокрутки
+    list.style.setProperty('--scroll-duration', totalDuration.toFixed(2) + 's');
+  }
 
   function startMarquee() {
     if (marqueeStarted) return;
@@ -473,6 +560,7 @@
       setTimeout(updateMarquee, 500);
       return;
     }
+    applyMarqueeSpeed(list, wrap);
     list.classList.add('scrolling');
   }
 
@@ -487,6 +575,47 @@
     const wrapHeight = wrap.clientHeight;
     const target     = itemTop - (wrapHeight / 2) + (itemHeight / 2);
     wrap.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+  }
+
+  function bonusRowHtml(b) {
+    const multVal = b.result !== null ? b.result / b.cost : null;
+    const isWin   = b.result !== null && b.result >= b.cost;
+
+    const multBadge = multVal !== null
+      ? `<span class="mult-badge ${isWin ? 'win' : 'loss'}">${fmtX(multVal)}</span>`
+      : `<span class="mult-badge pending">?</span>`;
+
+    const activeBadge = b.status === 'active'
+      ? `<span class="active-badge">▶ ОТКРЫТИЕ</span>`
+      : '';
+
+    const imgContent = b.image
+      ? `<img src="${b.image}" alt="${b.game}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : '';
+    const placeholderHtml = getPlaceholderHtml(b.game);
+
+    const resultHtml = b.result !== null
+      ? `<span class="arrow">→</span><span class="result-val ${isWin ? 'win' : 'loss'}">${fmt(b.result)}</span>`
+      : '';
+
+    return `
+      <div class="bonus-item ${b.status}" data-id="${b.id}">
+        <div class="game-img">
+          ${imgContent}
+          <span class="placeholder" style="${b.image ? 'display:none' : ''}">${placeholderHtml}</span>
+        </div>
+        <div class="game-info">
+          <div class="game-name">${b.game}</div>
+          <div class="game-cost-row">
+            <span class="cost-val">${fmt(b.cost)}</span>
+            ${resultHtml}
+          </div>
+        </div>
+        <div class="badge-col">
+          ${multBadge}
+          ${activeBadge}
+        </div>
+      </div>`;
   }
 
   function render(state) {
@@ -523,73 +652,51 @@
       txPill.classList.remove('pos', 'neg');
     }
 
-    // Bonus list
+    // Bonus list — текущий слот закреплён сверху (всегда виден), история скроллится отдельно
     const list = document.getElementById('bonus-list');
+    const currentSlot = document.getElementById('current-slot');
     const bonuses = state.bonuses || [];
+
+    const activeBonus  = bonuses.find(b => b.status === 'active');
+    const historyItems = bonuses.filter(b => b.status !== 'active');
+
+    currentSlot.innerHTML = activeBonus
+      ? `<div class="current-slot-label">▶ Текущий слот</div>${bonusRowHtml(activeBonus)}`
+      : `<div class="current-slot-label">▶ Текущий слот</div>
+         <div class="bonus-item" style="opacity:0.5;">
+           <div class="game-img"><img class="placeholder-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/1f3b0.png" alt="🎰"></div>
+           <div class="game-info">
+             <div class="game-name">Ожидание бонуски…</div>
+             <div class="game-cost-row"><span class="cost-val">—</span></div>
+           </div>
+           <div class="badge-col"><span class="mult-badge pending">?</span></div>
+         </div>`;
 
     list.innerHTML = bonuses.length === 0
       ? '<div class="empty">Бонусы не добавлены</div>'
-      : bonuses.map(b => {
-      const multVal = b.result !== null ? b.result / b.cost : null;
-      const isWin   = b.result !== null && b.result >= b.cost;
-      const isLoss  = b.result !== null && b.result < b.cost;
+      : (historyItems.length === 0
+          ? '<div class="empty">История пуста</div>'
+          : historyItems.map(bonusRowHtml).join(''));
 
-      const multBadge = multVal !== null
-        ? `<span class="mult-badge ${isWin ? 'win' : 'loss'}">${fmtX(multVal)}</span>`
-        : `<span class="mult-badge pending">?</span>`;
-
-      const activeBadge = b.status === 'active'
-        ? `<span class="active-badge">▶ ОТКРЫТИЕ</span>`
-        : '';
-
-      // Если картинка есть — показываем её (нетронуто), иначе — инициалы на градиенте
-      const imgBlock = b.image
-        ? `<img src="${b.image}" alt="${b.game}" onerror="this.style.display='none'">`
-        : makePlaceholder(b.game);
-
-      const resultHtml = b.result !== null
-        ? `<span class="arrow">→</span><span class="result-val ${isWin ? 'win' : 'loss'}">${fmt(b.result)}</span>`
-        : '';
-
-      return `
-        <div class="bonus-item ${b.status}" data-id="${b.id}">
-          <div class="game-img">
-            ${imgBlock}
-          </div>
-          <div class="game-info">
-            <div class="game-name">${b.game}</div>
-            <div class="game-cost-row">
-              <span class="cost-val">${fmt(b.cost)}</span>
-              ${resultHtml}
-            </div>
-          </div>
-          <div class="badge-col">
-            ${multBadge}
-            ${activeBadge}
-          </div>
-        </div>`;
-    }).join('');
-
-    // Auto-scroll to active item + start marquee
-    const activeBonus = bonuses.find(b => b.status === 'active');
-    const activeId = activeBonus ? activeBonus.id : null;
+    // Автопрокрутка истории — постоянная скорость, пересчитываем на каждый рендер
     requestAnimationFrame(() => {
       const wrap2 = document.querySelector('.bonus-list-wrap');
       const list2 = document.getElementById('bonus-list');
       if (wrap2 && list2) {
         const canScroll = list2.scrollHeight > wrap2.clientHeight;
         if (canScroll) {
+          applyMarqueeSpeed(list2, wrap2);
           list2.classList.add('scrolling');
           startMarquee();
         } else {
+          // не хватает контента — убираем анимацию и сбрасываем флаг
           list2.classList.remove('scrolling');
           marqueeStarted = false;
         }
       }
-      lastActiveId = activeId;
     });
 
-    // Footer
+    // Footer — всегда виден
     document.getElementById('total-spent').textContent = fmt(stats.totalCost);
     const wonEl = document.getElementById('total-won');
     wonEl.textContent = fmt(stats.totalResult);
@@ -607,7 +714,7 @@
     };
     es.onerror = () => {
       es.close();
-      setTimeout(connect, 3000);
+      setTimeout(connect, 3000); // reconnect
     };
   }
   connect();
