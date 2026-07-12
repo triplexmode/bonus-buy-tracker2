@@ -489,36 +489,9 @@
   const fmt = n => Number(n).toLocaleString('ru') + ' $';
   const fmtX = n => n.toFixed(2) + 'x';
 
-  // Game emoji fallbacks
-  const GAME_ICONS = {
-    default: '🎰',
-    'sugar rush': '🍭',
-    'sweet bonanza': '🍬',
-    'dog house': '🐾',
-    'zeus': '⚡',
-    'gates of olympus': '🏛️',
-    'steamrunners': '🚂',
-    'fire': '🔥',
-    'book': '📖',
-    'wolf': '🐺',
-  };
-
-  function getEmoji(name) {
-    const n = (name || '').toLowerCase();
-    for (const [k, v] of Object.entries(GAME_ICONS)) {
-      if (n.includes(k)) return v;
-    }
-    return GAME_ICONS.default;
-  }
-
-  // Дефолтный плейсхолдер (когда нет картинки и название не совпало ни с одной игрой) —
-  // это иконка казино/слота, заменена на apple-эмодзи. Остальные emoji (по конкретным играм) не трогаем.
+  // Плейсхолдер при отсутствии картинки — всегда иконка казино (apple-эмодзи), без подбора по названию игры
   function getPlaceholderHtml(name) {
-    const emoji = getEmoji(name);
-    if (emoji === GAME_ICONS.default) {
-      return `<img class="placeholder-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/1f3b0.png" alt="🎰">`;
-    }
-    return emoji;
+    return `<img class="placeholder-icon" src="https://raw.githubusercontent.com/iamcal/emoji-data/master/img-apple-64/1f3b0.png" alt="🎰">`;
   }
 
   function calcStats(state) {
